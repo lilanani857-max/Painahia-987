@@ -5,7 +5,3 @@
   command = "pnpm install && pnpm run build"
   publish = "dist"
 
-
-[build]
-  command = "pnpm install && pnpm run build"
-  publish = "dist"
