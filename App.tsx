@@ -1,146 +1,79 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import NotFound from '@/pages/not-found';
+import { Route, Switch, Router as WouterRouter } from 'wouter';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import './lib/auth'; // Initialize token getter
 
-import { modules as discoveredModules } from "./.generated/mockup-components";
+// Pages
+import Landing from './pages/Landing';
+import Profile from './pages/Profile';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminUsers from './pages/admin/Users';
+import AdminOrganizerRequests from './pages/admin/OrganizerRequests';
+import AdminGames from './pages/admin/Games';
+import AdminStats from './pages/admin/Stats';
+import OrganizerDashboard from './pages/organizer/Dashboard';
+import OrganizerGames from './pages/organizer/Games';
+import OrganizerCreateGame from './pages/organizer/CreateGame';
+import OrganizerGameRoom from './pages/organizer/GameRoom';
+import PlayerDashboard from './pages/player/Dashboard';
+import PlayerGames from './pages/player/Games';
+import PlayerGameRoom from './pages/player/GameRoom';
+import PlayerCards from './pages/player/Cards';
 
-type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-function _resolveComponent(
-  mod: Record<string, unknown>,
-  name: string,
-): ComponentType | undefined {
-  const fns = Object.values(mod).filter(
-    (v) => typeof v === "function",
-  ) as ComponentType[];
+function Router() {
   return (
-    (mod.default as ComponentType) ||
-    (mod.Preview as ComponentType) ||
-    (mod[name] as ComponentType) ||
-    fns[fns.length - 1]
+    <Switch>
+      <Route path="/" component={Landing} />
+      
+      <ProtectedRoute path="/profile" component={Profile} />
+      
+      {/* Admin Routes */}
+      <ProtectedRoute path="/admin" role="admin" component={AdminDashboard} />
+      <ProtectedRoute path="/admin/users" role="admin" component={AdminUsers} />
+      <ProtectedRoute path="/admin/organizer-requests" role="admin" component={AdminOrganizerRequests} />
+      <ProtectedRoute path="/admin/games" role="admin" component={AdminGames} />
+      <ProtectedRoute path="/admin/stats" role="admin" component={AdminStats} />
+
+      {/* Organizer Routes */}
+      <ProtectedRoute path="/organizer" role="organizer" component={OrganizerDashboard} />
+      <ProtectedRoute path="/organizer/games" role="organizer" component={OrganizerGames} />
+      <ProtectedRoute path="/organizer/games/new" role="organizer" component={OrganizerCreateGame} />
+      <ProtectedRoute path="/organizer/games/:id" role="organizer" component={OrganizerGameRoom} />
+
+      {/* Player Routes */}
+      <ProtectedRoute path="/player" role="player" component={PlayerDashboard} />
+      <ProtectedRoute path="/player/games" role="player" component={PlayerGames} />
+      <ProtectedRoute path="/player/games/:id" role="player" component={PlayerGameRoom} />
+      <ProtectedRoute path="/player/cards" role="player" component={PlayerCards} />
+
+      <Route component={NotFound} />
+    </Switch>
   );
-}
-
-function PreviewRenderer({
-  componentPath,
-  modules,
-}: {
-  componentPath: string;
-  modules: ModuleMap;
-}) {
-  const [Component, setComponent] = useState<ComponentType | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    setComponent(null);
-    setError(null);
-
-    async function loadComponent(): Promise<void> {
-      const key = `./components/mockups/${componentPath}.tsx`;
-      const loader = modules[key];
-      if (!loader) {
-        setError(`No component found at ${componentPath}.tsx`);
-        return;
-      }
-
-      try {
-        const mod = await loader();
-        if (cancelled) {
-          return;
-        }
-        const name = componentPath.split("/").pop()!;
-        const comp = _resolveComponent(mod, name);
-        if (!comp) {
-          setError(
-            `No exported React component found in ${componentPath}.tsx\n\nMake sure the file has at least one exported function component.`,
-          );
-          return;
-        }
-        setComponent(() => comp);
-      } catch (e) {
-        if (cancelled) {
-          return;
-        }
-
-        const message = e instanceof Error ? e.message : String(e);
-        setError(`Failed to load preview.\n${message}`);
-      }
-    }
-
-    void loadComponent();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [componentPath, modules]);
-
-  if (error) {
-    return (
-      <pre style={{ color: "red", padding: "2rem", fontFamily: "system-ui" }}>
-        {error}
-      </pre>
-    );
-  }
-
-  if (!Component) return null;
-
-  return <Component />;
-}
-
-function getBasePath(): string {
-  return import.meta.env.BASE_URL.replace(/\/$/, "");
-}
-
-function getPreviewExamplePath(): string {
-  const basePath = getBasePath();
-  return `${basePath}/preview/ComponentName`;
-}
-
-function Gallery() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-      <div className="text-center max-w-md">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-3">
-          Component Preview Server
-        </h1>
-        <p className="text-gray-500 mb-4">
-          This server renders individual components for the workspace canvas.
-        </p>
-        <p className="text-sm text-gray-400">
-          Access component previews at{" "}
-          <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-            {getPreviewExamplePath()}
-          </code>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function getPreviewPath(): string | null {
-  const basePath = getBasePath();
-  const { pathname } = window.location;
-  const local =
-    basePath && pathname.startsWith(basePath)
-      ? pathname.slice(basePath.length) || "/"
-      : pathname;
-  const match = local.match(/^\/preview\/(.+)$/);
-  return match ? match[1] : null;
 }
 
 function App() {
-  const previewPath = getPreviewPath();
-
-  if (previewPath) {
-    return (
-      <PreviewRenderer
-        componentPath={previewPath}
-        modules={discoveredModules}
-      />
-    );
-  }
-
-  return <Gallery />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+          <Router />
+        </WouterRouter>
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
 }
 
 export default App;
