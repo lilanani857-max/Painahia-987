@@ -1,5 +1,5 @@
 {
-  "packageManager": "pnpm@latest",
+"packageManager": "pnpm@9.15.0",
   "name": "@workspace/mockup-sandbox",
   "version": "2.0.0",
   "type": "module",
