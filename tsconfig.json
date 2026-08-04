@@ -1,6 +1,6 @@
 {
   
-"include": ["*.ts", "*.tsx", "mockupPreviewPlugin.ts", "vite.config.ts"]
+"include": ["*.ts", "*.tsx", "mockupPreviewPlugin.ts", "vite.config.ts"], 
 
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
