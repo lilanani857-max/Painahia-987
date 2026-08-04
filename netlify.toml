@@ -1,6 +1,6 @@
 [build.environment]
   PORT = "5000"
-BASE_PATH
+BASE_PATH = "/" 
 
 [build]
   command = "pnpm install && pnpm run build"
